@@ -1,10 +1,7 @@
-C Lib Template
+libwinfont
 ==============
 
-C library template creates a static lib and companion
-program(s). Includes test program and man page templates too.
-
-Nothing fancy. No dependencies. Builds with make.
+C library for reading Windows Bitmap FON font files.
 
 Usage
 =====
@@ -15,8 +12,8 @@ Verbose build
 
 View man pages
 
-    $ man -M . libtemplate
-    $ man -M . templatectl
+    $ man -M . libwinfont
+    $ man -M . winfontinfo
 
 Install to a different PREFIX (default is $HOME)
 

@@ -1,4 +1,4 @@
-LIBNAME=template
+LIBNAME=winfont
 LIBVER=0.0.1
 
 CFLAGS ?=
@@ -24,22 +24,22 @@ LIB_OBJS :=
 LIB_OBJS += version.o
 
 PROGRAMS :=
-PROGRAMS += templatectl
+PROGRAMS += winfontinfo
 PROGRAMS += test
 
 INST_FLAGS = -D
 
 INST_PROGRAMS :=
-INST_PROGRAMS += templatectl
+INST_PROGRAMS += winfontinfo
 
 INST_MAN1 :=
-INST_MAN1 += templatectl.1
+INST_MAN1 += winfontinfo.1
 
 INST_MAN3 :=
-INST_MAN3 += libtemplate.3
+INST_MAN3 += lib$(LIBNAME).3
 
 INST_HEADERS :=
-INST_HEADERS += template.h
+INST_HEADERS += winfont.h
 
 INST_LIBS :=
 INST_LIBS += lib$(LIBNAME).a
@@ -107,7 +107,7 @@ cflags   += $($(*)-cflags) $(CPPFLAGS) $(CFLAGS)
 VERSION:=$(shell git describe --dirty 2>/dev/null || echo '$(LIBVER)')
 version.o: version.h
 version.h: FORCE
-	@echo '#define TEMPLATE_VERSION "$(VERSION)"' > version.h.tmp
+	@echo '#define WINFONT_VERSION "$(VERSION)"' > version.h.tmp
 	@if cmp -s version.h version.h.tmp; then \
 		rm version.h.tmp; \
 	else \
