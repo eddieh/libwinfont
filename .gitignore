@@ -65,3 +65,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# test font
+Bm437_ATI_8x8.FON

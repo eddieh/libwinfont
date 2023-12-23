@@ -22,6 +22,7 @@ cflags += -Wall -Wwrite-strings
 
 LIB_OBJS :=
 LIB_OBJS += version.o
+LIB_OBJS += winfont.o
 
 PROGRAMS :=
 PROGRAMS += winfontinfo

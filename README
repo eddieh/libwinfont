@@ -19,3 +19,17 @@ Install to a different PREFIX (default is $HOME)
 
     $ make PREFIX=/usr/local
     $ make PREFIX=/usr/local install
+
+Code Page 437
+=============
+
+For Windows Bitmap fonts we're mostly concerned with CP437 (aka
+IBM437, CSPC8CODEPAGE437, or just 437).
+
+Convert a file from CP437 to UTF8
+
+    $ iconv -f CP437 -t UTF-8 README.NFO > README.txt
+
+And back to UTF8
+
+    $ iconv -f UTF-8 -t CP437 README.txt > README.NFO

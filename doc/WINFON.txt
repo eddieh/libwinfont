@@ -1,0 +1,60 @@
+The Windows FON format is a container that may contain one or more
+fonts (FNT resources).
+
+This is a rough representation of the FON file layout. Notably this
+only depicts a FON container with a single font. For every font there
+are two FONTDIRENTRY-ish structs. I'm not sure of the layout when
+there are multiple fonts.
+
++-------------------------+
+|   MZ header             |
++-------------------------+   DOS Exe Stub
+|   Exe .text & .data     |
++-------------------------+-------------------+
+|                                             |
+|   NE header                                 |
+|                                             |
++---------------------------------------------+
+|   Shift                                     |
++---------------------------------------------+
+|                                             |
+|   Resource table                            |
+|                                             |
+|   +----------------------+                  |
+|   |   1. Resource entry  |                  |
+|   +----------------------+                  |
+|   |   2. Resource entry  |                  |
+|   +----------------------+                  |
+|        ⁞                                    |
+|   +----------------------+                  |
+|   |   n. Resource entry  |                  |
++---+----------------------+------------------+
+|                                             |
+|   Resident-name table                       |
+|   +----------------------+                  |
+|   |  ???                 |                  |
++---+----------------------+------------------+
+|   Font group header                         |
++---------------------------------------------+
+|                                             |
+|   Font dir entry RT_FONTDIR (aka            |
+|     FONTDIRENTRY)                           |
+|                                             |
++---------------------------------------------+
+|                                             |
+|   Font (FNT) resource RT_FONT (aka          |
+|     FONTINFO) see WINFNT.txt                |
+|                                             |
++---------------------------------------------+
+|                                             |
+|   CharTable                                 |
+|                                             |
+|                                             |
++---------------------------------------------+
+|                                             |
+|   Bitmap                                    |
+|                                             |
+|                                             |
+|                                             |
+|                                             |
++---------------------------------------------+
