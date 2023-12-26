@@ -3,6 +3,7 @@
 
 #include <winfont.h>
 
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -224,7 +225,7 @@ typedef struct PACKED {
 #define CHARSET_HANGUL          129
 #define CHARSET_GB2312          134
 #define CHARSET_CHINESEBIG5     136
-#define CHARSET_OEM             255 /* CHECK: Assume CP437? */
+#define CHARSET_OEM             255 /* Alias for CP437 (aka IBM437) */
 
 #define CHARSET_JOHAB           130
 #define CHARSET_HEBREW          177
@@ -279,6 +280,36 @@ restoreoffset:
     return str;
 }
 
+uint8_t *
+winfont_read_bitmap(int w, int h, int wbytes,
+    int nglyphs, FILE *fnt)
+{
+    int bmBytes;
+    uint8_t *bm = NULL;
+
+    bmBytes = wbytes * h * nglyphs;
+    bm = calloc(bmBytes, sizeof(uint8_t));
+    if (!bm) {
+        fprintf(stderr, "OOM\n");
+        return NULL;
+    }
+
+    uint8_t *cb = bm;
+    for (int c = 0; c < nglyphs; c++) {
+        uint8_t *dest = cb;
+        uint8_t *col = cb;
+        for (int i = 0; i < wbytes * h; i++) {
+            if (i != 0 && i % h == 0)
+                dest = ++col;
+            *dest = getc(fnt);
+            dest += wbytes;
+        }
+        cb += wbytes * h;
+    }
+
+    return bm;
+}
+
 WinFont *
 winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
 {
@@ -289,6 +320,8 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
     CharInfo_v2 *ct2 = NULL;
     CharInfo_v3 *ct3 = NULL;
     char *facestr = NULL;
+    uint8_t *bitmap = NULL;
+    int w, h, wBytes, offset;
 
     fnt_base = ftell(fnt);
     if (fread(&fd, sizeof(FontDirEntry), 1, fnt) == 0) {
@@ -303,10 +336,12 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
 
     fprintf(stderr, "Version: 0x%X\n", fd.dfVersion);
     fprintf(stderr, "Size: %u\n", fd.dfSize);
+
     /* fprintf(stderr, "f0(%lu), f1(%lu)\n",
            offsetof(FontDirEntry, dfVersion),
            offsetof(FontDirEntry, dfSize));
     */
+
     fprintf(stderr, "Copyright: %s\n", fd.dfCopyright);
     fprintf(stderr, "Type: 0x%X\n", fd.dfType);
     fprintf(stderr, "Pts: %d\n", fd.dfPoints);
@@ -357,40 +392,6 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
             fprintf(stderr, "Error reading: %s\n", ".fon");
             goto cleanup;
         }
-
-        fprintf(stderr, "C[1] w=%d, o=%d, b+o=%d\n",
-            ct2[1].width, ct2[1].offset, fnt_base + ct2[1].offset);
-
-        /*
-
-          .******.
-          *......*
-          *.*..*.*
-          *......*
-          *.****.*
-          *..**..*
-          *......*
-          .******.
-
-         */
-
-#define UTF8_BIT_OFF " "
-#define UTF8_BIT_ON  "█"
-
-        int w, h, offset, end;
-        h = fd.dfPixHeight;
-        w = ct2[1].width; (void)w;
-        offset = fnt_base + ct2[1].offset;
-        end = offset + (1 * h);
-        fseek(fnt, offset, SEEK_SET);
-        for (int i = offset; i < end; i++) {
-            uint8_t scanline = getc(fnt);
-            for (int j = 0; j < 8; j ++)
-                fprintf(stderr, "%s", ((1 << j) & scanline) ?
-                    UTF8_BIT_ON : UTF8_BIT_OFF);
-            fprintf(stderr, "\n");
-        }
-
     } else {
         ctsize = nglyphs * sizeof(CharInfo_v3);
         ct3 = malloc(ctsize);
@@ -404,14 +405,41 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
         }
     }
 
+    offset = fnt_base + fd.dfBitsOffset;
+    if (fseek(fnt, offset, SEEK_SET) == -1) {
+        fprintf(stderr, "Error reading font\n");
+        goto cleanup;
+    }
+
+    w = fd.dfPixWidth;
+    h = fd.dfPixHeight;
+
+    wBytes = (int)ceilf((float)w / 8.0f);
+    bitmap = winfont_read_bitmap(w, h, wBytes, nglyphs, fnt);
+
     if (!wf) {
         wf = calloc(1, sizeof(WinFont));
         if (!wf) {
             fprintf(stderr, "OOM\n");
             goto cleanup;
         }
-        wf->facename = facestr;
     }
+
+    wf->facename = facestr;
+    wf->nglyphs = nglyphs;
+    wf->width = w;
+    wf->height = h;
+    wf->wbytes = wBytes;
+    wf->charset = WinFont_CharSetCP437;
+    wf->_fn_info = calloc(1, sizeof(FontDirEntry));
+    if (!wf->_fn_info) {
+        fprintf(stderr, "OOM\n");
+        goto cleanup;
+    }
+    memmove(wf->_fn_info, &fd, sizeof(FontDirEntry));
+    /* TODO: zero out fields that don't apply outside of the file
+     * context */
+    wf->bitmap = bitmap;
 
     return wf;
 
@@ -453,8 +481,8 @@ winfont_read_file(FILE *f)
         return NULL;
     }
 
-    fprintf(stderr, "MZ magic=0x%X\n", mz.e_magic);
-    fprintf(stderr, "NE offset=%d\n", mz.e_lfanew);
+    /* fprintf(stderr, "MZ magic=0x%X\n", mz.e_magic); */
+    /* fprintf(stderr, "NE offset=%d\n", mz.e_lfanew); */
 
     if (fseek(f, mz.e_lfanew, SEEK_SET) == -1) {
         fprintf(stderr, "Error reading font\n");
@@ -471,12 +499,12 @@ winfont_read_file(FILE *f)
         return NULL;
     }
 
-    fprintf(stderr, "NE magic=0x%X\n", ne.ne_magic);
-    fprintf(stderr, "NE rsrctab=%d\n", ne.ne_rsrctab);
+    /* fprintf(stderr, "NE magic=0x%X\n", ne.ne_magic); */
+    /* fprintf(stderr, "NE rsrctab=%d\n", ne.ne_rsrctab); */
 
     /* Move to the resource table. */
     rtoff = mz.e_lfanew + ne.ne_rsrctab;
-    fprintf(stderr, "rtoff=%ld\n", rtoff);
+    /* fprintf(stderr, "rtoff=%ld\n", rtoff); */
     if (fseek(f, rtoff, SEEK_SET) == -1) {
         fprintf(stderr, "Error reading font\n");
         return NULL;
@@ -486,7 +514,7 @@ winfont_read_file(FILE *f)
         fprintf(stderr, "Error reading font\n");
         return NULL;
     }
-    fprintf(stderr, "shift=%d\n", shift);
+    /* fprintf(stderr, "shift=%d\n", shift); */
 
     fntoff = 0;
     rcount = 0;
@@ -503,7 +531,7 @@ winfont_read_file(FILE *f)
         if (re.reType == RT_FONT) {
             fntcount = re.reCount;
             fntoff = re.reOffset << shift;
-            fprintf(stderr, "fntoff=%ld\n", fntoff);
+            /* fprintf(stderr, "fntoff=%ld\n", fntoff); */
             if (fseek(f, fntoff, SEEK_SET) == -1) {
                 fprintf(stderr, "Error reading resource table\n");
                 return NULL;

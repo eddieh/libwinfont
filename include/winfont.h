@@ -30,15 +30,28 @@
 #define WINFONT_H
 
 #include <stdio.h>
+#include <stdint.h>
+
+typedef enum {
+    WinFont_CharSetANSI = 0,
+    WinFont_CharSetDefault = 1,
+    WinFont_CharSetSymbol = 2,
+    WinFont_CharSetOEM = 255,
+    WinFont_CharSetCP437 = WinFont_CharSetOEM,
+    WinFont_CharSetIBM437 = WinFont_CharSetOEM,
+} WinFont_CharSet;
+
+typedef struct FontDirEntry WinFont_Info;
 
 typedef struct {
-    char *path;
-    char *filename;
-    char *facename;
-    /* int charset; charmap; codepage; */
-    int nglyph;
-    int width;
-    int height;
+    char *facename;             /* null-terminated face name */
+    int nglyphs;                /* number of glyphs in font */
+    int width;                  /* glyph width in pixels */
+    int height;                 /* glyph height in pixels */
+    int wbytes;                 /* glyph byte width */
+    WinFont_CharSet charset;    /* probably CP437 */
+    WinFont_Info *_fn_info;     /* private */
+    uint8_t *bitmap;            /* all glyphs */
 } WinFont;
 
 const char *
@@ -52,5 +65,11 @@ winfont_read_path(char *path);
 
 void
 winfont_free(WinFont *wf);
+
+size_t
+winfont_glyph_required_size(WinFont *wf, int g);
+
+int
+winfont_glyph_bitmap(WinFont *wf, int g, uint8_t *bm, size_t sz);
 
 #endif /* WINFONT_H */

@@ -66,5 +66,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# test font
+# Test fonts
 Bm437_ATI_8x8.FON
+Bm437_Rainbow100_re_66.FON
+Bm437_HP_150_re.FON

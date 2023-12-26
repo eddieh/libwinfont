@@ -39,6 +39,35 @@ usage()
 	    getprogname());
 }
 
+void
+print_ascii_art_glyph(WinFont *wf, int glyph)
+{
+#define UTF8_BIT_OFF " "
+#define UTF8_BIT_ON  "█"
+    int w, h, wBytes;
+    uint8_t *bitmap;
+
+    w = wf->width;
+    h = wf->height;
+    wBytes = wf->wbytes;
+    bitmap = wf->bitmap;
+
+    /* should use 'w' since there's no reason to print the pad
+     * bits */
+    (void)w;
+
+    uint8_t *p = bitmap + (wBytes * h) * glyph;
+    for (int i = 0; i < wBytes * h; i++) {
+        if (i != 0 && i % wBytes == 0)
+            fprintf(stderr, "\n");
+        for (int j = 1; j < 9; j++)
+            fprintf(stderr, "%s", ((1 << (8-j)) & *p) ?
+                UTF8_BIT_ON : UTF8_BIT_OFF);
+        p++;
+    }
+    fprintf(stderr, "\n");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -47,19 +76,22 @@ main(int argc, char **argv)
     FILE *font;
     char *path;
     WinFont *wf = NULL;
+    int glyph = 0;
 
     const char *opts = "c:s";
     while ((ch = getopt(argc, argv, opts)) != -1) {
         switch (ch) {
         case 'c':
             /* get character argument and print as ASCII art */
-            fprintf(stderr, "-%c not implemented yet\n", ch);
-            fprintf(stderr, "  arg=%s\n", optarg);
+            if (sscanf(optarg, "%d", &glyph) == 0) {
+                fprintf(stderr, "expected number got %s\n", optarg);
+                exit(1);
+            }
             cflag = 1;
             break;
         case 's':
             /* print short information */
-            fprintf(stderr, "-%c not implemented yet\n", ch);
+            /* fprintf(stderr, "-%c not implemented yet\n", ch); */
             sflag = 1;
             break;
         default:
@@ -79,7 +111,7 @@ main(int argc, char **argv)
     /* the rest of argv are paths */
     for (; *argv != NULL; argv++) {
         path = *argv;
-        fprintf(stderr, "path: %s\n", path);
+        /* fprintf(stderr, "path: %s\n", path); */
         font = fopen(path, "rb");
         if (font == NULL) {
             fprintf(stderr, "Could not open: %s\n", path);
@@ -93,9 +125,11 @@ main(int argc, char **argv)
             continue;
         }
 
-        fprintf(stderr, "WinFont[%s] ptr=%p\n", wf->facename, wf);
+        /* fprintf(stderr, "WinFont[%s] ptr=%p\n", wf->facename, wf); */
+
         if (cflag)
-            (void)cflag;
+            print_ascii_art_glyph(wf, glyph);
+
         if (sflag)
             (void)sflag;
 
