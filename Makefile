@@ -70,17 +70,17 @@ $(INST_DIRS):
 	$(Q)install -d $@
 endif
 
-# HAVE_DEP := $(shell $(PKG_CONFIG) --exists dep-1.0 2>/dev/null && echo 'yes')
-# ifeq ($(HAVE_DEP),yes)
-# EXTRA_OBJS += extra.o
-# PROGRAMS += progdep
-# INST_MAN1 += progdep.1
-# progdep-cflags := $(shell $(PKG_CONFIG) --cflags dep-1.0)
-# progdep-ldflags :=
-# progdep-ldlibs := $(shell $(PKG_CONFIG) --libs dep-1.0)
-# else
-# $(warning Your system does not have dep, skipping progdep)
-# endif
+HAVE_DEP := $(shell $(PKG_CONFIG) --exists sdl2 2>/dev/null && echo 'yes')
+ifeq ($(HAVE_DEP),yes)
+EXTRA_OBJS += wfview.o
+PROGRAMS += wfview
+#INST_MAN1 += wfview.1
+wfview-cflags := $(shell $(PKG_CONFIG) --cflags sdl2)
+wfview-ldflags :=
+wfview-ldlibs := $(shell $(PKG_CONFIG) --libs sdl2)
+else
+$(warning Your system does not have SDL2, skipping wfview)
+endif
 
 LIBS := lib$(LIBNAME).a
 OBJS := $(LIB_OBJS) $(EXTRA_OBJS) $(PROGRAMS:%=%.o)
