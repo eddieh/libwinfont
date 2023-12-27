@@ -284,27 +284,27 @@ uint8_t *
 winfont_read_bitmap(int w, int h, int wbytes,
     int nglyphs, FILE *fnt)
 {
-    int bmBytes;
-    uint8_t *bm = NULL;
+    int bmbytes;
+    uint8_t *bm = NULL, *gb,
+        *dest, *colb;
 
-    bmBytes = wbytes * h * nglyphs;
-    bm = calloc(bmBytes, sizeof(uint8_t));
+    bmbytes = wbytes * h * nglyphs;
+    bm = calloc(bmbytes, sizeof(uint8_t));
     if (!bm) {
         fprintf(stderr, "OOM\n");
         return NULL;
     }
 
-    uint8_t *cb = bm;
+    gb = bm;
     for (int c = 0; c < nglyphs; c++) {
-        uint8_t *dest = cb;
-        uint8_t *col = cb;
+        dest = colb = gb;
         for (int i = 0; i < wbytes * h; i++) {
             if (i != 0 && i % h == 0)
-                dest = ++col;
+                dest = ++colb;
             *dest = getc(fnt);
             dest += wbytes;
         }
-        cb += wbytes * h;
+        gb += wbytes * h;
     }
 
     return bm;
@@ -321,7 +321,7 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
     CharInfo_v3 *ct3 = NULL;
     char *facestr = NULL;
     uint8_t *bitmap = NULL;
-    int w, h, wBytes, offset;
+    int w, h, wbytes, offset;
 
     fnt_base = ftell(fnt);
     if (fread(&fd, sizeof(FontDirEntry), 1, fnt) == 0) {
@@ -414,8 +414,8 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
     w = fd.dfPixWidth;
     h = fd.dfPixHeight;
 
-    wBytes = (int)ceilf((float)w / 8.0f);
-    bitmap = winfont_read_bitmap(w, h, wBytes, nglyphs, fnt);
+    wbytes = (int)ceilf((float)w / 8.0f);
+    bitmap = winfont_read_bitmap(w, h, wbytes, nglyphs, fnt);
 
     if (!wf) {
         wf = calloc(1, sizeof(WinFont));
@@ -429,7 +429,7 @@ winfont_load_fnt_resource(WinFont *wf, FILE *fnt)
     wf->nglyphs = nglyphs;
     wf->width = w;
     wf->height = h;
-    wf->wbytes = wBytes;
+    wf->wbytes = wbytes;
     wf->charset = WinFont_CharSetCP437;
     wf->_fn_info = calloc(1, sizeof(FontDirEntry));
     if (!wf->_fn_info) {

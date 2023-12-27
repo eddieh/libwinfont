@@ -30,7 +30,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+
+#define UTF8_BIT_OFF " "
+#define UTF8_BIT_ON  "█"
+
+#define DEBUG_BIT_OFF "."
+#define DEBUG_BIT_ON  "#"
+
+char char_off[5] = UTF8_BIT_OFF;
+char char_on[5]  = UTF8_BIT_ON;
 
 static void
 usage()
@@ -42,28 +52,28 @@ usage()
 void
 print_ascii_art_glyph(WinFont *wf, int glyph)
 {
-#define UTF8_BIT_OFF " "
-#define UTF8_BIT_ON  "█"
-    int w, h, wBytes;
-    uint8_t *bitmap;
+    int w, h, wbytes;
+    uint8_t *bitmap, *gb;
 
     w = wf->width;
     h = wf->height;
-    wBytes = wf->wbytes;
+    wbytes = wf->wbytes;
     bitmap = wf->bitmap;
 
     /* should use 'w' since there's no reason to print the pad
      * bits */
     (void)w;
 
-    uint8_t *p = bitmap + (wBytes * h) * glyph;
-    for (int i = 0; i < wBytes * h; i++) {
-        if (i != 0 && i % wBytes == 0)
+    gb = bitmap + (wbytes * h) * glyph;
+    for (int i = 0; i < wbytes * h; i++) {
+        if (i != 0 && i % wbytes == 0)
             fprintf(stderr, "\n");
-        for (int j = 1; j < 9; j++)
-            fprintf(stderr, "%s", ((1 << (8-j)) & *p) ?
-                UTF8_BIT_ON : UTF8_BIT_OFF);
-        p++;
+        /* TODO: calculate bits to examine based on wBytes and w to
+         * avoid printing pad */
+        for (int b = 7; b >= 0; b--)
+            fprintf(stderr, "%s", ((1 << b) & *gb) ?
+                char_on : char_off);
+        gb++;
     }
     fprintf(stderr, "\n");
 }
@@ -71,18 +81,23 @@ print_ascii_art_glyph(WinFont *wf, int glyph)
 int
 main(int argc, char **argv)
 {
-    int ch, cflag = 0,
+    int ch, cflag = 0, dflag = 0,
         sflag = 0;
     FILE *font;
     char *path;
     WinFont *wf = NULL;
     int glyph = 0;
 
-    const char *opts = "c:s";
+    const char *opts = "c:d:s";
     while ((ch = getopt(argc, argv, opts)) != -1) {
         switch (ch) {
+        case 'd':
+            /* Print glyph as ASCII art debug mode. Same as 'c', but
+               uses basic ASCII characters draws off bits with the
+               period character '.' and on bits with '#'. */
+            dflag = 1;
         case 'c':
-            /* get character argument and print as ASCII art */
+            /* Print glyph as ASCII art. */
             if (sscanf(optarg, "%d", &glyph) == 0) {
                 fprintf(stderr, "expected number got %s\n", optarg);
                 exit(1);
@@ -90,7 +105,7 @@ main(int argc, char **argv)
             cflag = 1;
             break;
         case 's':
-            /* print short information */
+            /* Print short information. */
             /* fprintf(stderr, "-%c not implemented yet\n", ch); */
             sflag = 1;
             break;
@@ -111,7 +126,6 @@ main(int argc, char **argv)
     /* the rest of argv are paths */
     for (; *argv != NULL; argv++) {
         path = *argv;
-        /* fprintf(stderr, "path: %s\n", path); */
         font = fopen(path, "rb");
         if (font == NULL) {
             fprintf(stderr, "Could not open: %s\n", path);
@@ -127,8 +141,13 @@ main(int argc, char **argv)
 
         /* fprintf(stderr, "WinFont[%s] ptr=%p\n", wf->facename, wf); */
 
-        if (cflag)
+        if (cflag) {
+            if (dflag) {
+                strncpy(char_off, DEBUG_BIT_OFF, sizeof(char_off));
+                strncpy(char_on, DEBUG_BIT_ON, sizeof(char_on));
+            }
             print_ascii_art_glyph(wf, glyph);
+        }
 
         if (sflag)
             (void)sflag;
