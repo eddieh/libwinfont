@@ -14,7 +14,7 @@ char *font_path;
 FILE *font;
 
 int winw = 640;
-int winh = 480;
+int winh = 240;
 
 int ccol = 32;
 int crow = 8;
@@ -23,7 +23,7 @@ static void
 usage()
 {
     (void)fprintf(stderr, "usage: %s [-s factor] fontpath ...\n",
-	    getprogname());
+        getprogname());
 }
 
 static void
@@ -122,7 +122,7 @@ main(int argc, char **argv)
     }
 
     window = SDL_CreateWindow(
-        "WinFont View",
+        wf->facename,
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED, winw, winh, 0);
 

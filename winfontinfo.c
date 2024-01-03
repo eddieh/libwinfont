@@ -46,7 +46,7 @@ static void
 usage()
 {
     (void)fprintf(stderr, "usage: %s [-c char] [-s] fontpath ...\n",
-	    getprogname());
+        getprogname());
 }
 
 void
@@ -116,7 +116,7 @@ main(int argc, char **argv)
     }
 
     argc -= optind;
-	argv += optind;
+    argv += optind;
 
     if (*argv == NULL) {
         usage();
